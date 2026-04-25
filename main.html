@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olive Pro | Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span class="logo-text">Happy Rider ADMIN</span>
+            <i class="fas fa-bars" id="toggle-btn" onclick="toggleSidebar()"></i>
+        </div>
+        <div class="menu-list">
+            <div class="menu-item active" onclick="loadPage('dashboard', this)"><i class="fas fa-chart-pie"></i><span
+                    class="menu-text">Dashboard</span></div>
+            <div class="menu-item" onclick="loadPage('users', this)"><i class="fas fa-user-friends"></i><span
+                    class="menu-text">Users</span></div>
+            <div class="menu-item" onclick="loadPage('riders', this)"><i class="fa-solid fa-motorcycle"></i><span
+                    class="menu-text">Riders</span></div>
+            <div class="menu-item" onclick="loadPage('kyc', this)"><i class="fas fa-file-shield"></i><span
+                    class="menu-text">KYC</span></div>
+            <div class="menu-item" onclick="loadPage('support', this)"><i class="fas fa-headset"></i><span
+                    class="menu-text">Support</span></div>
+            <div class="menu-item" onclick="loadPage('settings', this)"><i class="fas fa-cog"></i><span
+                    class="menu-text">Settings</span></div>
+            <div class="menu-item logout-btn" onclick="handleLogout()" style="margin-top:auto; color: #ff4d4d;">
+                <i class="fas fa-power-off"></i><span class="menu-text">Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="header-strip">
+            <h3 id="current-title">Dashboard</h3>
+            <div class="header-right" style="display: flex; align-items: center; gap: 20px;">
+                <div id="admin-profile"
+                    style="display: flex; align-items: center; background: #fff; padding: 5px 15px; border-radius: 50px; border: 1px solid #ddd;">
+                    <i class="fas fa-user-shield" style="color: #4b6344; margin-right: 8px;"></i>
+                    <span id="admin-name-text" style="font-weight: 600; color: #333;">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" class="container">
+            <div class="card">
+                <h2>Loading System...</h2>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="router.js"></script>
+</body>
+
+</html>
