@@ -1,0 +1,120 @@
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Approved Riders</h2>
+        <button onclick="loadApprovedRiders()" class="btn-refresh">
+            <i class="fas fa-sync-alt"></i> Refresh List
+        </button>
+    </div>
+
+    <table class="kyc-table">
+        <thead>
+            <tr>
+                <th>Mobile Number (User ID)</th>
+                <th>Approved By</th>
+                <th>Live Status</th>
+            </tr>
+        </thead>
+        <tbody id="riders-table-body">
+            <tr>
+                <td colspan="3" style="text-align: center; padding: 40px;">Syncing with Firestore...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<style>
+    /* Exact Styles from kyc.html */
+    .kyc-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .kyc-table th {
+        background: #f4f7f6;
+        padding: 12px;
+        text-align: left;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .kyc-table td {
+        padding: 15px 12px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .btn-refresh {
+        background: #4b6344;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Status Specific Styles */
+    .status-active {
+        color: #28a745;
+        font-weight: 700;
+    }
+
+    .status-inactive {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .admin-tag {
+        background: #f0f0f0;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #555;
+    }
+</style>
+
+<script>
+    async function loadApprovedRiders() {
+        const tableBody = document.getElementById('riders-table-body');
+        try {
+            // 1. Get the list of IDs from the KYC categories
+            const snap = await db.collection('kyc').doc('categories').get();
+            const accepted = snap.data()?.accepted || [];
+
+            if (accepted.length === 0) {
+                tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No approved riders found.</td></tr>";
+                return;
+            }
+
+            tableBody.innerHTML = ""; // Clear loader
+
+            // 2. Iterate through the strings like "1111111117 (AdminName)"
+            for (const entry of accepted) {
+                // Parse ID and Admin name using Regex
+                const match = entry.match(/^(\d+)\s*\((.*)\)$/);
+                const userId = match ? match[1] : entry;
+                const adminName = match ? match[2] : "N/A";
+
+                // 3. Fetch the 'active' boolean from the user's specific document
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userData = userDoc.data();
+                const isActive = userData?.active === true;
+
+                tableBody.innerHTML += `
+                    <tr>
+                        <td><b>${userId}</b></td>
+                        <td><span class="admin-tag"><i class="fas fa-user-shield"></i> ${adminName}</span></td>
+                        <td>
+                            <span class="${isActive ? 'status-active' : 'status-inactive'}">
+                                ${isActive ? '● Active' : '○ Offline'}
+                            </span>
+                        </td>
+                    </tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+            tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red;'>Error loading list.</td></tr>";
+        }
+    }
+
+    // Load on page startup
+    loadApprovedRiders();
+</script>
