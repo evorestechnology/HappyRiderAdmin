@@ -10,6 +10,8 @@
         <thead>
             <tr>
                 <th>Mobile Number (User ID)</th>
+                <th>Full Name</th>
+                <th>Vehicle Type</th>
                 <th>Approved By</th>
                 <th>Live Status</th>
             </tr>
@@ -73,47 +75,60 @@
 
 <script>
     async function loadApprovedRiders() {
-        const tableBody = document.getElementById('riders-table-body');
-        try {
-            // 1. Get the list of IDs from the KYC categories
-            const snap = await db.collection('kyc').doc('categories').get();
-            const accepted = snap.data()?.accepted || [];
+            const tableBody = document.getElementById('riders-table-body');
+            try {
+                // 1. Get the list of IDs from the KYC categories
+                const snap = await db.collection('kyc').doc('categories').get();
+                const accepted = snap.data()?.accepted || [];
 
-            if (accepted.length === 0) {
-                tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No approved riders found.</td></tr>";
-                return;
+                if (accepted.length === 0) {
+                    tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No approved riders found.</td></tr>";
+                    return;
+                }
+
+                tableBody.innerHTML = ""; // Clear loader/previous content
+
+                // 2. Iterate through the strings like "1111111117 (AdminName)"
+                for (const entry of accepted) {
+                    // Parse ID and Admin name using Regex
+                    const match = entry.match(/^(\d+)\s*\((.*)\)$/);
+                    const userId = match ? match[1] : entry;
+                    const adminName = match ? match[2] : "N/A";
+
+                    // 3. Fetch user details (Active status, Name, Vehicle Type)
+                    const userDoc = await db.collection('users').doc(userId).get();
+
+                    let fullName = "Unknown";
+                    let vehicleType = "N/A";
+                    let isActive = false;
+
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        fullName = userData.fullName || "N/A";
+                        // Accessing nested vehicle info as seen in your KycQueue example
+                        vehicleType = userData.vehicleKycInfo?.vehicleType || "Unknown";
+                        isActive = userData.active === true;
+                    }
+
+                    // 4. Append row with 5 columns
+                    tableBody.innerHTML += `
+                <tr>
+                    <td><b>${userId}</b></td>
+                    <td><span style="font-weight:600; color:#333;">${fullName}</span></td>
+                    <td><span style="color:#555;">${vehicleType}</span></td>
+                    <td><span class="admin-tag"><i class="fas fa-user-shield"></i> ${adminName}</span></td>
+                    <td>
+                        <span class="${isActive ? 'status-active' : 'status-inactive'}">
+                            ${isActive ? '● Active' : '○ Offline'}
+                        </span>
+                    </td>
+                </tr>`;
+                }
+            } catch (e) {
+                console.error(e);
+                tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:red;'>Error loading list.</td></tr>";
             }
-
-            tableBody.innerHTML = ""; // Clear loader
-
-            // 2. Iterate through the strings like "1111111117 (AdminName)"
-            for (const entry of accepted) {
-                // Parse ID and Admin name using Regex
-                const match = entry.match(/^(\d+)\s*\((.*)\)$/);
-                const userId = match ? match[1] : entry;
-                const adminName = match ? match[2] : "N/A";
-
-                // 3. Fetch the 'active' boolean from the user's specific document
-                const userDoc = await db.collection('users').doc(userId).get();
-                const userData = userDoc.data();
-                const isActive = userData?.active === true;
-
-                tableBody.innerHTML += `
-                    <tr>
-                        <td><b>${userId}</b></td>
-                        <td><span class="admin-tag"><i class="fas fa-user-shield"></i> ${adminName}</span></td>
-                        <td>
-                            <span class="${isActive ? 'status-active' : 'status-inactive'}">
-                                ${isActive ? '● Active' : '○ Offline'}
-                            </span>
-                        </td>
-                    </tr>`;
-            }
-        } catch (e) {
-            console.error(e);
-            tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red;'>Error loading list.</td></tr>";
         }
-    }
 
     // Load on page startup
     loadApprovedRiders();

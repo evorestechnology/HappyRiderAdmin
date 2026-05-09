@@ -10,7 +10,9 @@
         <thead>
             <tr>
                 <th>Mobile Number (User ID)</th>
-                <th>Status</th>
+                <th>Full Name</th>
+                <th>Vehicle Type</th>
+                <th>Submitted At</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -290,22 +292,74 @@
     }
 
     async function loadKycQueue() {
-        const tableBody = document.getElementById('kyc-table-body');
-        try {
-            const snap = await db.collection('kyc').doc('categories').get();
-            const pending = snap.data()?.pending || [];
-            tableBody.innerHTML = pending.length ? "" : "<tr><td colspan='3' style='text-align:center;'>No pending requests.</td></tr>";
+            const tableBody = document.getElementById('kyc-table-body');
+            try {
+                const snap = await db.collection('kyc').doc('categories').get();
+                const pendingIds = snap.data()?.pending || [];
 
-            pending.forEach(id => {
-                tableBody.innerHTML += `
-                    <tr>
-                        <td><b>${id}</b></td>
-                        <td><span style="color:#ef6c00; font-weight:600;">Pending Review</span></td>
-                        <td><button onclick="reviewUser('${id}')" style="background:#4b6344; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Review Details</button></td>
-                    </tr>`;
-            });
-        } catch (e) { tableBody.innerHTML = "Error loading list."; }
-    }
+                if (!pendingIds.length) {
+                    tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No pending requests.</td></tr>";
+                    return;
+                }
+
+                const pendingUsers = [];
+                for (const id of pendingIds) {
+                    const userDoc = await db.collection('users').doc(id).get();
+                    if (userDoc.exists) {
+                        const u = userDoc.data();
+                        const vInfo = u.vehicleKycInfo || {}; // Extracting vehicle info
+
+                        let rawDate = u.updatedAt;
+                        if (rawDate && typeof rawDate.toDate === 'function') {
+                            rawDate = rawDate.toDate();
+                        } else if (rawDate) {
+                            rawDate = new Date(rawDate);
+                        } else {
+                            rawDate = new Date(0);
+                        }
+
+                        pendingUsers.push({
+                            id: id,
+                            fullName: u.fullName || 'N/A',
+                            vehicleType: vInfo.vehicleType || 'Unknown', // Storing Vehicle Type
+                            updatedAt: rawDate
+                        });
+                    }
+                }
+
+                // Sort by date (Newest first)
+                pendingUsers.sort((a, b) => b.updatedAt - a.updatedAt);
+
+                tableBody.innerHTML = "";
+                pendingUsers.forEach(u => {
+                    // Format to DD-MM-YYYY
+                    let formattedDate = "N/A";
+                    if (u.updatedAt.getTime() !== 0) {
+                        const day = String(u.updatedAt.getDate()).padStart(2, '0');
+                        const month = String(u.updatedAt.getMonth() + 1).padStart(2, '0');
+                        const year = u.updatedAt.getFullYear();
+                        formattedDate = `${day}-${month}-${year}`;
+                    }
+
+                    tableBody.innerHTML += `
+                <tr>
+                    <td><b>${u.id}</b></td>
+                    <td><span style="font-weight:600; color:#333;">${u.fullName}</span></td>
+                    <td><span style="color:#555;">${u.vehicleType}</span></td>
+                    <td><span style="color:#666;">${formattedDate}</span></td>
+                    <td>
+                        <button onclick="reviewUser('${u.id}')" style="background:#4b6344; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
+                            Review
+                        </button>
+                    </td>
+                </tr>`;
+                });
+
+            } catch (e) {
+                console.error(e);
+                tableBody.innerHTML = "<tr><td colspan='5'>Error loading list.</td></tr>";
+            }
+        }
 
     async function reviewUser(id) {
         currentId = id;
